@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0D0B0E">
+<title>All In or Trolled · Degen Vegas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+<!-- LOBBY -->
+<div class="screen active" id="screen-lobby">
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+  <div class="lobby-inner">
+    <div class="kicker">degen vegas presents</div>
+    <h1 class="title">ALL IN<em>OR TROLLED</em></h1>
+    <p class="tagline">"Table 7. The felt is damp with regret."</p>
+
+    <div class="panel">
+      <h3>Your seat</h3>
+      <input id="name-input" type="text" placeholder="DEGEN NAME" maxlength="12" autocomplete="off">
+      <div class="avatar-picker" id="avatar-picker"></div>
+      <button class="btn primary" id="btn-create">Create Room</button>
+    </div>
+
+    <div class="divider">OR JOIN</div>
+
+    <div class="panel">
+      <h3>Join a table</h3>
+      <input id="code-input" class="code" type="text" placeholder="CODE" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <button class="btn ghost" id="btn-join">Join Room</button>
+    </div>
+    <p class="err" id="lobby-err"></p>
+  </div>
+</div>
+
+<!-- WAITING -->
+<div class="screen" id="screen-waiting">
+  <div class="waiting-inner">
+    <div class="kicker">table ready</div>
+    <h1 class="title-sm">ALL IN OR TROLLED</h1>
+    <div class="code-display">
+      <div class="lbl">ROOM CODE</div>
+      <div class="code" id="wait-code">—</div>
+      <div class="hint">share this with other degens · 30,000 chips · 500 ante</div>
+    </div>
+    <div class="waiting-players" id="wait-players"></div>
+    <button class="btn primary" id="btn-start" disabled>Start Tournament</button>
+    <button class="btn ghost" id="btn-leave">Leave Table</button>
+  </div>
+</div>
+
+<!-- PLAYING -->
+<div class="screen" id="screen-playing">
+  <div class="hud">
+    <div class="hud-left">
+      <div class="hud-lvl" id="hud-level">TABLE 7 · HAND 1</div>
+      <div class="hud-blinds" id="hud-blinds">ANTE 500</div>
+    </div>
+    <div class="hud-right">
+      <div class="hud-timer" id="hud-timer" aria-live="off"></div>
+      <button class="hud-icon fair-proof" id="btn-proof" title="View public shuffle proof" aria-label="View shuffle proof">SHA</button>
+      <div class="hud-stat"><span class="label">ALIVE</span><span class="val" id="hud-alive">—</span></div>
+      <div class="hud-icon" id="btn-sound" title="toggle sound">🔊</div>
+    </div>
+  </div>
+
+  <div class="table-wrap" id="table-wrap">
+    <canvas id="game-canvas" aria-hidden="true"></canvas>
+    <div class="table" id="table">
+      <div class="board" id="board"></div>
+      <div class="pot" id="pot">POT · 0</div>
+      <div class="dealer-btn" id="dealer-btn">D</div>
+      <div class="seats" id="seats"></div>
+    </div>
+    <div class="flavor-bar" id="flavor-bar"></div>
+  </div>
+
+  <div class="hero-cards" id="hero-cards"></div>
+
+  <div class="action-bar" id="action-bar">
+    <button class="act-btn btn-fold" id="btn-fold" disabled>
+      FOLD
+      <span class="sub">MUCK IT</span>
+    </button>
+    <button class="act-btn btn-allin" id="btn-allin" disabled>
+      ALL IN
+      <span class="sub" id="allin-amt">SHOVE</span>
+    </button>
+  </div>
+
+  <div class="showdown-overlay" id="showdown-overlay">
+    <div class="sd-box">
+      <div class="sd-lbl">SHOWDOWN</div>
+      <div class="sd-who" id="sd-who">—</div>
+      <div class="sd-hand" id="sd-hand">—</div>
+      <div class="sd-pot" id="sd-pot">POT · 0</div>
+    </div>
+  </div>
+</div>
+
+<!-- ENDED -->
+<div class="screen" id="screen-ended">
+  <div class="ended-inner">
+    <div class="kicker">the table is quiet now</div>
+    <h1 class="title" id="end-title">ELIMINATED</h1>
+    <p class="tagline" id="end-text">—</p>
+    <button class="btn primary" id="btn-again">Run It Back</button>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

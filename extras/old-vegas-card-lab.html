@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Old Vegas Card Micro-Interactions Sandbox</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-void: #08090c;
+      --felt-dark: #0b1612;
+      --felt-accent: #10241d;
+      --neon-violet: #a855f7;
+      --neon-cyan: #06b6d4;
+      --neon-crimson: #f43f5e;
+      --neon-gold: #f59e0b;
+      --card-bg: #12141c;
+      --card-surface: #181b26;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-void);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 85% 90%, rgba(6, 182, 212, 0.06) 0%, transparent 45%),
+        radial-gradient(#1a1e29 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 24px 24px;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+    }
+
+    .font-display {
+      font-family: 'Cinzel', serif;
+    }
+
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Casino Felt Table Pod */
+    .table-pod {
+      background: radial-gradient(ellipse at center, var(--felt-accent) 0%, var(--felt-dark) 75%, #070d0b 100%);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      box-shadow: 
+        inset 0 0 40px rgba(0, 0, 0, 0.85),
+        0 12px 32px -10px rgba(0, 0, 0, 0.9);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Subtle Felt Noise Pattern */
+    .table-pod::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.14;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    /* Playing Card Base Dimensions */
+    .playing-card {
+      width: 132px;
+      height: 186px;
+      border-radius: 12px;
+      position: relative;
+      background: linear-gradient(145deg, #1a1e2b 0%, #0f121a 100%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.75), 0 4px 10px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px;
+      will-change: transform, filter, box-shadow;
+    }
+
+    @media (max-width: 640px) {
+      .playing-card {
+        width: 118px;
+        height: 166px;
+        padding: 8px;
+      }
+    }
+
+    /* Ornate Card Back Pattern */
+    .card-back-pattern {
+      background-color: #110d1d;
+      background-image: 
+        repeating-linear-gradient(45deg, rgba(168, 85, 247, 0.14) 0px, rgba(168, 85, 247, 0.14) 2px, transparent 2px, transparent 8px),
+        repeating-linear-gradient(-45deg, rgba(6, 182, 212, 0.14) 0px, rgba(6, 182, 212, 0.14) 2px, transparent 2px, transparent 8px);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+    }
+
+    /* 1. Slow Sweat Peel Specifics */
+    .peel-container {
+      width: 144px;
+      height: 202px;
+      position: relative;
+      touch-action: none;
+      cursor: grab;
+    }
+    .peel-container:active {
+      cursor: grabbing;
+    }
+    .peel-face, .peel-back, .peel-flap {
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+    }
+    .peel-face {
+      background: linear-gradient(145deg, #1b1f2e 0%, #0d1017 100%);
+      border: 1px solid rgba(244, 63, 94, 0.45);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.8);
+      z-index: 1;
+    }
+    .peel-back {
+      z-index: 2;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.75);
+      /* Dynamic clip-path controlled via JS */
+    }
+    .peel-flap {
+      z-index: 3;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(168,85,247,0.25) 45%, rgba(15,17,26,0.95) 100%);
+      box-shadow: -6px -6px 16px rgba(0, 0, 0, 0.75);
+      border: 1px solid rgba(255,255,255,0.25);
+      opacity: 0;
+    }
+
+    /* 2. Neon Edge Charge & Foil Shimmer */
+    .neon-card-wrapper {
+      perspective: 900px;
+      touch-action: none;
+    }
+    .neon-card {
+      transition: transform 0.12s ease-out, box-shadow 0.25s ease;
+      transform-style: preserve-3d;
+      overflow: hidden;
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      box-shadow: 0 0 18px rgba(6, 182, 212, 0.2), 0 14px 28px rgba(0,0,0,0.85);
+    }
+    .neon-card.is-charged {
+      animation: neonPulseCycle 2.4s infinite alternate ease-in-out;
+    }
+    @keyframes neonPulseCycle {
+      0% {
+        border-color: rgba(6, 182, 212, 0.85);
+        box-shadow: 0 0 22px rgba(6, 182, 212, 0.55), inset 0 0 14px rgba(6, 182, 212, 0.25);
+      }
+      50% {
+        border-color: rgba(168, 85, 247, 0.9);
+        box-shadow: 0 0 26px rgba(168, 85, 247, 0.6), inset 0 0 14px rgba(168, 85, 247, 0.25);
+      }
+      100% {
+        border-color: rgba(244, 63, 94, 0.9);
+        box-shadow: 0 0 24px rgba(244, 63, 94, 0.6), inset 0 0 14px rgba(244, 63, 94, 0.25);
+      }
+    }
+    .foil-layer {
+      position: absolute;
+      inset: -50%;
+      pointer-events: none;
+      background: linear-gradient(
+        115deg,
+        transparent 25%,
+        rgba(6, 182, 212, 0.28) 42%,
+        rgba(255, 255, 255, 0.45) 50%,
+        rgba(168, 85, 247, 0.28) 58%,
+        transparent 75%
+      );
+      mix-blend-mode: color-dodge;
+      opacity: 0.35;
+      transition: opacity 0.2s ease;
+    }
+
+    /* 3. Muck Physics Flick */
+    .muck-zone {
+      border: 1px dashed rgba(244, 63, 94, 0.35);
+      background: radial-gradient(circle, rgba(244, 63, 94, 0.08) 0%, rgba(0, 0, 0, 0.4) 100%);
+      transition: all 0.2s ease;
+    }
+    .muck-zone.active-target {
+      border-color: rgba(244, 63, 94, 0.9);
+      box-shadow: 0 0 25px rgba(244, 63, 94, 0.28);
+      transform: scale(1.03);
+    }
+    .flick-card {
+      touch-action: none;
+      cursor: grab;
+      z-index: 20;
+    }
+    .flick-card:active {
+      cursor: grabbing;
+    }
+
+    /* 4. Snap-Deal Stagger */
+    .deal-slot {
+      width: 64px;
+      height: 92px;
+      border-radius: 8px;
+      border: 1px dashed rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.25);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    @media (min-width: 640px) {
+      .deal-slot {
+        width: 76px;
+        height: 108px;
+      }
+    }
+    .dealt-card {
+      position: absolute;
+      inset: 0;
+      border-radius: 8px;
+      background: linear-gradient(145deg, #1b2030 0%, #0f121b 100%);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.75);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 6px;
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+
+    /* 5. Bad Beat Fracture Shake */
+    @keyframes badBeatTremor {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      12% { transform: translate(-6px, -2px) rotate(-1.5deg); }
+      24% { transform: translate(6px, 2px) rotate(1.5deg); }
+      36% { transform: translate(-5px, 1px) rotate(-1deg); }
+      48% { transform: translate(5px, -1px) rotate(1deg); }
+      60% { transform: translate(-3px, 2px) rotate(-0.5deg); }
+      75% { transform: translate(2px, 4px) rotate(-2deg); }
+      100% { transform: translate(0px, 8px) rotate(-4deg); }
+    }
+    .bad-beat-active {
+      animation: badBeatTremor 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+      filter: grayscale(82%) contrast(1.15) brightness(0.8);
+      border-color: rgba(244, 63, 94, 0.5) !important;
+    }
+    .fracture-overlay {
+      opacity: 0;
+      transition: opacity 0.15s ease-out;
+      pointer-events: none;
+    }
+    .bad-beat-active .fracture-overlay {
+      opacity: 0.92;
+    }
+
+    /* 6. Magnetic Fan */
+    .fan-stage {
+      touch-action: none;
+      height: 195px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .fan-card {
+      position: absolute;
+      width: 96px;
+      height: 138px;
+      border-radius: 10px;
+      background: linear-gradient(145deg, #1d2232 0%, #10131c 100%);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      box-shadow: -6px 10px 20px rgba(0, 0, 0, 0.75);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+      transform-origin: 50% 135%;
+      cursor: pointer;
+    }
+    .fan-card.is-focused {
+      border-color: rgba(6, 182, 212, 0.95);
+      box-shadow: 0 18px 34px rgba(0, 0, 0, 0.9), 0 0 20px rgba(6, 182, 212, 0.4);
+    }
+
+    /* 7. Winner's Crown Lock-In */
+    .winner-card {
+      transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.32s ease, border-color 0.32s ease;
+    }
+    .winner-card.is-locked {
+      transform: translateY(-8px) scale(1.05);
+      border-color: rgba(245, 158, 11, 0.95);
+      box-shadow: 0 0 36px rgba(245, 158, 11, 0.55), 0 20px 35px rgba(0, 0, 0, 0.85);
+    }
+    .gold-burst {
+      position: absolute;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.55) 0%, rgba(245, 158, 11, 0.15) 45%, transparent 70%);
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    .gold-burst.animate-burst {
+      animation: radialBurstFlash 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes radialBurstFlash {
+      0% { opacity: 0.95; transform: scale(0.4); }
+      50% { opacity: 0.75; transform: scale(1.15); }
+      100% { opacity: 0; transform: scale(1.35); }
+    }
+    .winner-stamp {
+      position: absolute;
+      top: -12px;
+      right: -14px;
+      opacity: 0;
+      transform: scale(2.4) rotate(18deg);
+      pointer-events: none;
+      z-index: 15;
+    }
+    .winner-stamp.slam-in {
+      animation: stampHeavySlam 0.24s cubic-bezier(0.12, 0.95, 0.25, 1) forwards;
+    }
+    @keyframes stampHeavySlam {
+      0% { opacity: 0; transform: scale(2.5) rotate(22deg); }
+      75% { opacity: 1; transform: scale(0.98) rotate(-8deg); }
+      100% { opacity: 1; transform: scale(1) rotate(-6deg); }
+    }
+
+    /* Haptic Pill Pulse */
+    @keyframes pillPop {
+      0% { transform: scale(0.94); }
+      50% { transform: scale(1.04); }
+      100% { transform: scale(1); }
+    }
+    .haptic-pop {
+      animation: pillPop 0.22s ease-out;
+    }
+
+    /* Custom Action Buttons */
+    .btn-vegas {
+      background: linear-gradient(180deg, rgba(30, 35, 48, 0.95) 0%, rgba(16, 19, 27, 0.98) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transition: all 0.15s ease;
+    }
+    .btn-vegas:hover {
+      border-color: rgba(6, 182, 212, 0.5);
+      box-shadow: 0 0 14px rgba(6, 182, 212, 0.25), 0 4px 12px rgba(0, 0, 0, 0.7);
+    }
+    .btn-vegas:active {
+      transform: translateY(1px) scale(0.98);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Sticky Top Command Bar -->
+  <header class="sticky top-0 z-50 backdrop-blur-md bg-[#08090c]/85 border-b border-white/10 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-600/30 to-cyan-500/20 border border-purple-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+          <span class="text-lg text-cyan-300">♠</span>
+        </div>
+        <div>
+          <h1 class="font-display text-sm sm:text-base font-extrabold tracking-wider text-white uppercase">
+            Old Vegas <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-cyan-300 to-rose-400">Card Lab</span>
+          </h1>
+          <p class="text-[11px] text-slate-400 hidden sm:block">7 Tactile Micro-Interactions • Web Audio + Telegram Haptics</p>
+        </div>
+      </div>
+
+      <!-- Telemetry & Sound Controls -->
+      <div class="flex items-center gap-2.5 sm:gap-3">
+        <!-- Simulated Telegram WebApp Haptic Pill -->
+        <div id="haptic-pill" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-white/10 text-xs font-mono-code transition-colors">
+          <span id="haptic-dot" class="w-2 h-2 rounded-full bg-slate-600"></span>
+          <span class="text-slate-400 hidden md:inline">TG.Haptic:</span>
+          <span id="haptic-label" class="text-slate-300 font-semibold">IDLE</span>
+        </div>
+
+        <!-- Audio Toggle -->
+        <button id="audio-toggle" class="btn-vegas px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-semibold text-cyan-300 cursor-pointer" title="Toggle Procedural Web Audio">
+          <span id="audio-icon">🔊</span>
+          <span id="audio-text">SFX ON</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Sandbox Grid -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6 sm:py-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+
+      <!-- =========================================================
+           1. THE "SLOW SWEAT" PEEL (CORNER CURL)
+      ========================================================== -->
+      <section class="table-pod rounded-2xl p-5 flex flex-col justify-between min-h-[360px]">
+        <div class="relative z-10 flex items-start justify-between gap-2 mb-3">
+          <div>
+            <span class="text-[10px] font-mono-code uppercase tracking-widest text-purple-400">01 • Touch & Drag</span>
+            <h2 class="text-base font-bold text-white">The "Slow Sweat" Peel</h2>
+          </div>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono-code bg-purple-500/15 text-purple-300 border border-purple-500/30">clip-path</span>
+        </div>
+
+        <div class="relative z-10 flex-1 flex flex-col items-center justify-center my-2">
+          <div id="peel-card" class="peel-container" aria-label="Drag bottom-right corner upward to peel card">
+            <!-- Underlying Face-Up Card (Ace of Spades) -->
+            <div class="peel-face flex flex-col justify-between p-3">
+              <div class="flex flex-col items-start leading-none">
+                <span class="text-xl font-extrabold text-rose-500">A</span>
+                <span class="text-lg text-rose-500">♦</span>
+              </div>
+              <div class="self-center text-5xl text-rose-500 drop-shadow-[0_0_12px_rgba(244,63,94,0.6)]">♦</div>
+              <div class="flex flex-col items-end leading-none rotate-180">
+                <span class="text-xl font-extrabold text-rose-500">A</span>
+                <span class="text-lg text-rose-500">♦</span>
+              </div>
+            </div>
+
+            <!-- Face-Down Card Back Cover -->
+            <div id="peel-back" class="peel-back card-back-pattern flex items-center justify-center p-3">
+              <div class="w-full h-full rounded-lg border border-purple-400/25 flex flex-col items-center justify-center bg-black/30">
+                <span class="font-display text-xs tracking-widest text-purple-300/80 uppercase">Vegas</span>
+                <span class="text-2xl text-cyan-400/70 my-1">❖</span>
+                <span class="text-[10px] font-mono-code text-slate-400">PEEL CORNER ↖</span>
+              </div>
+            </div>
+
+            <!-- Curled Corner Flap -->
+            <div id="peel-flap" class="peel-flap"></div>
+          </div>
+        </div>
+
+        <p class="relative z-10 text-xs text-slate-400 text-center mt-2">
+          Hold & drag upward/left from the <span class="text-cyan-300 font-medium">bottom-right corner</span> to sweat the pip; release to snap back.
+        </p>
+      </section>
+
+      <!-- =========================================================
+           2. NEON EDGE CHARGE & FOIL SHIMMER
+      ========================================================== -->
+      <section class="table-pod rounded-2xl p-5 flex flex-col justify-between min-h-[360px]">
+        <div class="relative z-10 flex items-start justify-between gap-2 mb-3">
+          <div>
+            <span class="text-[10px] font-mono-code uppercase tracking-widest text-cyan-400">02 • Pointer / Gyro Tilt</span>
+            <h2 class="text-base font-bold text-white">Neon Edge & Foil Shimmer</h2>
+          </div>
+          <button id="toggle-charge-btn" class="btn-vegas px-2.5 py-1 rounded-lg text-[11px] font-semibold text-cyan-300 cursor-pointer">
+            Pulse: ON
+          </button>
+        </div>
+
+        <div class="relative z-10 flex-1 flex items-center justify-center my-2">
+          <div id="neon-wrapper" class="neon-card-wrapper">
+            <div id="neon-card" class="playing-card neon-card is-charged cursor-crosshair">
+              <div id="foil-layer" class="foil-layer"></div>
+              <div class="flex justify-between items-start z-10">
+                <div class="leading-none">
+                  <div class="text-lg font-extrabold text-cyan-300">K</div>
+                  <div class="text-base text-cyan-400">♠</div>
+                </div>
+                <span class="text-[9px] font-mono-code px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-400/30">LIVE</span>
+              </div>
+
+              <div class="self-center flex flex-col items-center z-10">
+                <span class="text-4xl text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 via-purple-400 to-rose-400 drop-shadow-[0_0_12px_rgba(6,182,212,0.5)]">♚</span>
+                <span class="font-display text-[10px] tracking-widest text-slate-300 mt-1">HIGH ROLLER</span>
+              </div>
+
+              <div class="flex justify-between items-end z-10">
+                <span class="text-[9px] font-mono-code text-purple-300/80">FOIL-X</span>
+                <div class="leading-none rotate-180">
+                  <div class="text-lg font-extrabold text-cyan-300">K</div>
+                  <div class="text-base text-cyan-400">♠</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="relative z-10 text-xs text-slate-400 text-center mt-2">
+          Move cursor or finger across the card to shift the <span class="text-purple-300 font-medium">holographic foil</span> and 3D perspective tilt.
+        </p>
+      </section>
+
+      <!-- =========================================================
+           3. TOSSED-INTO-THE-MUCK PHYSICS FLICK
+      ========================================================== -->
+      <section class="table-pod rounded-2xl p-5 flex flex-col justify-between min-h-[360px]">
+        <div class="relative z-10 flex items-start justify-between gap-2 mb-2">
+          <div>
+            <span class="text-[10px] font-mono-code uppercase tracking-widest text-rose-400">03 • Velocity Vector</span>
+            <h2 class="text-base font-bold text-white">Tossed-Into-The-Muck Flick</h2>
+          </div>
+          <button id="reset-muck-btn" class="btn-vegas px-2.5 py-1 rounded-lg text-[11px] font-semibold text-rose-300 cursor-pointer">
+            Reset Card
+          </button>
+        </div>
+
+        <div id="muck-arena" class="relative z-10 flex-1 flex flex-col items-center justify-between py-2">
+          <!-- Center MUCK Discard Pile -->
+          <div id="muck-zone" class="muck-zone w-44 h-20 rounded-xl flex flex-col items-center justify-center relative">
+            <span class="font-display text-xs tracking-[0.25em] text-rose-400/90 font-bold">THE MUCK</span>
+            <span id="muck-count" class="text-[10px] font-mono-code text-slate-400 mt-0.5">0 CARDS FOLDED</span>
+          </div>
+
+          <!-- Draggable / Flickable Hand Card -->
+          <div class="relative w-full h-36 flex items-center justify-center mt-2">
+            <div id="flick-card" class="playing-card flick-card !w-[104px] !h-[144px] !p-2.5">
+              <div class="leading-none">
+                <div class="text-base font-extrabold text-slate-200">7</div>
+                <div class="text-sm text-slate-400">♣</div>
+              </div>
+              <div class="self-center text-3xl text-slate-500">♣</div>
+              <div class="flex justify-between items-center">
+                <span class="text-[9px] font-mono-code text-rose-400">FLICK ↑</span>
+                <div class="leading-none rotate-180">
+                  <div class="text-base font-extrabold text-slate-200">7</div>
+                  <div class="text-sm text-slate-400">♣</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="relative z-10 text-xs text-slate-400 text-center mt-1">
+          Swipe or flick the <span class="text-rose-300 font-medium">7♣</span> upward into the muck zone to fold with spin & depth blur.
+        </p>
+      </section>
+
+      <!-- =========================================================
+           4. SNAP-DEAL STAGGER WITH MICRO-OVERSHOOT
+      ========================================================== -->
+      <section class="table-pod rounded-2xl p-5 flex flex-col justify-between min-h-[360px] md:col-span-2 lg:col-span-2">
+        <div class="relative z-10 flex flex-wrap items-start justify-between gap-2 mb-3">
+          <div>
+            <span class="text-[10px] font-mono-code uppercase tracking-widest text-cyan-400">04 • 70ms Stagger + Spring</span>
+            <h2 class="text-base font-bold text-white">Snap-Deal Stagger with Micro-Overshoot</h2>
+          </div>
+          <button id="deal-hand-btn" class="btn-vegas px-3.5 py-1.5 rounded-lg text-xs font-semibold text-cyan-300 cursor-pointer flex items-center gap-1.5">
+            <span>⚡</span> Deal Hand
+          </button>
+        </div>
+
+        <div class="relative z-10 flex-1 flex flex-col items-center justify-center my-3">
+          <!-- 5-Card Board Slots -->
+          <div id="deal-board" class="flex items-center justify-center gap-2 sm:gap-3.5 flex-wrap">
+            <div class="deal-slot" data-slot="0"></div>
+            <div class="deal-slot" data-slot="1"></div>
+            <div class="deal-slot" data-slot="2"></div>
+            <div class="deal-slot" data-slot="3"></div>
+            <div class="deal-slot" data-slot="4"></div>
+          </div>
+        </div>
+
+        <p class="relative z-10 text-xs text-slate-400 text-center mt-2">
+          Pitches 5 cards from an off-screen shoe with <span class="text-cyan-300 font-medium">70ms cadence</span>, ±3° tilt, and a 4px overshoot settle.
+        </p>
+      </section>
+
+      <!-- =========================================================
+           5. THE "BAD BEAT" TILT & FRACTURE SHAKE
+      ========================================================== -->
+      <section class="table-pod rounded-2xl p-5 flex flex-col justify-between min-h-[360px]">
+        <div class="relative z-10 flex items-start justify-between gap-2 mb-3">
+          <div>
+            <span class="text-[10px] font-mono-code uppercase tracking-widest text-rose-400">05 • Error Haptic + Desat</span>
+            <h2 class="text-base font-bold text-white">The "Bad Beat" Fracture</h2>
+          </div>
+          <button id="bad-beat-btn" class="btn-vegas px-2.5 py-1 rounded-lg text-[11px] font-semibold text-rose-400 cursor-pointer">
+            Trigger Bad Beat
+          </button>
+        </div>
+
+        <div class="relative z-10 flex-1 flex items-center justify-center my-2">
+          <div id="bad-beat-card" class="playing-card cursor-pointer overflow-hidden" title="Click to trigger Bad Beat">
+            <!-- SVG Fracture Cracks Overlay -->
+            <svg class="fracture-overlay absolute inset-0 w-full h-full z-20" viewBox="0 0 132 186" fill="none">
+              <path d="M66 0 L58 38 L76 64 L48 98 L69 132 L52 186" stroke="rgba(255,255,255,0.75)" stroke-width="1.5"/>
+              <path d="M58 38 L22 52 L0 46" stroke="rgba(255,255,255,0.55)" stroke-width="1.1"/>
+              <path d="M76 64 L112 58 L132 72" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"/>
+              <path d="M48 98 L16 116 L4 134" stroke="rgba(244,63,94,0.7)" stroke-width="1.2"/>
+              <path d="M69 132 L106 144 L126 164" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+            </svg>
+
+            <div class="leading-none">
+              <div class="text-lg font-extrabold text-rose-500">A</div>
+              <div class="text-base text-rose-500">♥</div>
+            </div>
+            <div class="self-center flex flex-col items-center">
+              <span class="text-4xl text-rose-500">♥</span>
+              <span id="bad-beat-tag" class="mt-1 text-[9px] font-mono-code uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-300">99.8% FAV</span>
+            </div>
+            <div class="leading-none rotate-180">
+              <div class="text-lg font-extrabold text-rose-500">A</div>
+              <div class="text-base text-rose-500">♥</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="relative z-10 text-xs text-slate-400 text-center mt-2">
+          Simulates a brutal river suckout: <span class="text-rose-300 font-medium">±6px tremor</span>, 80% grayscale dip, glass fracture, and -4° sag.
+        </p>
+      </section>
+
+      <!-- =========================================================
+           6. MAGNETIC FAN & PARALLAX LIFT
+      ========================================================== -->
+      <section class="table-pod rounded-2xl p-5 flex flex-col justify-between min-h-[360px] md:col-span-2 lg:col-span-2">
+        <div class="relative z-10 flex items-start justify-between gap-2 mb-2">
+          <div>
+            <span class="text-[10px] font-mono-code uppercase tracking-widest text-purple-400">06 • Scrub & Neighbor Push</span>
+            <h2 class="text-base font-bold text-white">Magnetic Fan & Parallax Lift</h2>
+          </div>
+          <span id="fan-readout" class="px-2.5 py-1 rounded text-[11px] font-mono-code bg-purple-500/15 text-purple-300 border border-purple-500/30">
+            SCRUB HAND
+          </span>
+        </div>
+
+        <div id="fan-stage" class="fan-stage relative z-10 w-full my-2">
+          <!-- Populated dynamically with 5 fanned cards -->
+        </div>
+
+        <p class="relative z-10 text-xs text-slate-400 text-center mt-2">
+          Drag or hover horizontally across the 5-card fan to <span class="text-cyan-300 font-medium">elevate (-18px)</span> the active card and part its neighbors.
+        </p>
+      </section>
+
+      <!-- =========================================================
+           7. CHIP-STACK & WINNER'S CROWN LOCK-IN
+      ========================================================== -->
+      <section class="table-pod rounded-2xl p-5 flex flex-col justify-between min-h-[360px]">
+        <div class="relative z-10 flex items-start justify-between gap-2 mb-3">
+          <div>
+            <span class="text-[10px] font-mono-code uppercase tracking-widest text-amber-400">07 • Zero-Bounce Slam</span>
+            <h2 class="text-base font-bold text-white">Winner's Crown Lock-In</h2>
+          </div>
+          <button id="lock-winner-btn" class="btn-vegas px-2.5 py-1 rounded-lg text-[11px] font-semibold text-amber-300 cursor-pointer">
+            Lock Winner
+          </button>
+        </div>
+
+        <div class="relative z-10 flex-1 flex items-center justify-center my-2">
+          <!-- Gold Radial Burst Behind Card -->
+          <div id="gold-burst" class="gold-burst"></div>
+
+          <div id="winner-card" class="playing-card winner-card cursor-pointer">
+            <!-- Stamped Gold/Crimson WINNER Seal -->
+            <div id="winner-stamp" class="winner-stamp">
+              <div class="w-14 h-14 rounded-full bg-gradient-to-br from-amber-300 via-amber-500 to-amber-700 p-1 shadow-[0_6px_16px_rgba(0,0,0,0.85)] flex items-center justify-center border-2 border-amber-200">
+                <div class="w-full h-full rounded-full border border-dashed border-amber-950 flex flex-col items-center justify-center bg-amber-500/90 text-amber-950 leading-none">
+                  <span class="text-[10px] font-black">★</span>
+                  <span class="text-[8px] font-extrabold tracking-tighter">WINNER</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="leading-none">
+              <div class="text-lg font-extrabold text-amber-400">A</div>
+              <div class="text-base text-amber-400">♠</div>
+            </div>
+            <div class="self-center flex flex-col items-center">
+              <span class="text-4xl text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.55)]">♠</span>
+              <span class="font-display text-[9px] tracking-widest text-amber-200/80 mt-1">ROYAL POT</span>
+            </div>
+            <div class="leading-none rotate-180">
+              <div class="text-lg font-extrabold text-amber-400">A</div>
+              <div class="text-base text-amber-400">♠</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="relative z-10 text-xs text-slate-400 text-center mt-2">
+          Elevates the hero card, triggers a <span class="text-amber-300 font-medium">gold radial flash</span>, and slams a heavy chip seal onto the corner.
+        </p>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    /**
+     * =========================================================================
+     * PROCEDURAL WEB AUDIO ENGINE & SIMULATED TELEGRAM HAPTICS
+     * =========================================================================
+     */
+    const SandboxFeedback = (() => {
+      let audioCtx = null;
+      let isMuted = false;
+      let hapticTimeout = null;
+
+      function ensureAudio() {
+        if (!audioCtx && !isMuted) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) audioCtx = new AudioContext();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      }
+
+      // Procedural Sound Effects (Zero external URLs)
+      const sfx = {
+        tick() {
+          if (isMuted) return;
+          ensureAudio();
+          if (!audioCtx) return;
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(1100, now);
+          osc.frequency.exponentialRampToValueAtTime(320, now + 0.025);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+          osc.connect(gain).connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.03);
+        },
+
+        snap() {
+          if (isMuted) return;
+          ensureAudio();
+          if (!audioCtx) return;
+          const now = audioCtx.currentTime;
+          // White noise burst for crisp cardstock snap
+          const bufferSize = audioCtx.sampleRate * 0.06;
+          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.015));
+          }
+          const noise = audioCtx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(1800, now);
+          filter.Q.value = 1.4;
+
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0.26, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+
+          noise.connect(filter).connect(gain).connect(audioCtx.destination);
+          noise.start(now);
+        },
+
+        swoosh() {
+          if (isMuted) return;
+          ensureAudio();
+          if (!audioCtx) return;
+          const now = audioCtx.currentTime;
+          const bufferSize = audioCtx.sampleRate * 0.22;
+          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI);
+          }
+          const noise = audioCtx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(350, now);
+          filter.frequency.exponentialRampToValueAtTime(1400, now + 0.11);
+          filter.frequency.exponentialRampToValueAtTime(280, now + 0.22);
+
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.005, now + 0.22);
+
+          noise.connect(filter).connect(gain).connect(audioCtx.destination);
+          noise.start(now);
+        },
+
+        badBeat() {
+          if (isMuted) return;
+          ensureAudio();
+          if (!audioCtx) return;
+          const now = audioCtx.currentTime;
+          // Sub-bass heavy impact + dissonant metallic crack
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(125, now);
+          osc.frequency.exponentialRampToValueAtTime(36, now + 0.34);
+
+          gain.gain.setValueAtTime(0.28, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+          osc.connect(gain).connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.36);
+        },
+
+        winnerSlam() {
+          if (isMuted) return;
+          ensureAudio();
+          if (!audioCtx) return;
+          const now = audioCtx.currentTime;
+
+          // Heavy low thud
+          const thud = audioCtx.createOscillator();
+          const thudGain = audioCtx.createGain();
+          thud.type = 'sine';
+          thud.frequency.setValueAtTime(150, now);
+          thud.frequency.exponentialRampToValueAtTime(42, now + 0.18);
+          thudGain.gain.setValueAtTime(0.35, now);
+          thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+          thud.connect(thudGain).connect(audioCtx.destination);
+          thud.start(now);
+          thud.stop(now + 0.21);
+
+          // High clay/gold chip clink harmonics
+          [2450, 3890].forEach((freq, idx) => {
+            const clink = audioCtx.createOscillator();
+            const cGain = audioCtx.createGain();
+            clink.type = 'sine';
+            clink.frequency.setValueAtTime(freq, now + idx * 0.015);
+            cGain.gain.setValueAtTime(0.11, now + idx * 0.015);
+            cGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14 + idx * 0.015);
+            clink.connect(cGain).connect(audioCtx.destination);
+            clink.start(now + idx * 0.015);
+            clink.stop(now + 0.16 + idx * 0.015);
+          });
+        }
+      };
+
+      // Simulated Telegram WebApp Haptics + Navigator Vibrate
+      function triggerHaptic(type, style = '') {
+        const pill = document.getElementById('haptic-pill');
+        const dot = document.getElementById('haptic-dot');
+        const label = document.getElementById('haptic-label');
+
+        const text = style ? `${type}('${style}')` : `${type}()`;
+        label.textContent = text;
+
+        // Color coding by haptic category
+        dot.className = 'w-2 h-2 rounded-full ';
+        if (type === 'selectionChanged') {
+          dot.className += 'bg-cyan-400 shadow-[0_0_8px_#22d3ee]';
+          label.className = 'text-cyan-300 font-semibold';
+          if (navigator.vibrate) navigator.vibrate(8);
+        } else if (type === 'impactOccurred') {
+          dot.className += 'bg-purple-400 shadow-[0_0_8px_#c084fc]';
+          label.className = 'text-purple-300 font-semibold';
+          if (navigator.vibrate) navigator.vibrate(style === 'heavy' ? 28 : 15);
+        } else if (type === 'notificationOccurred') {
+          const isError = style === 'error';
+          dot.className += isError
+            ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]'
+            : 'bg-amber-400 shadow-[0_0_8px_#fbbf24]';
+          label.className = isError ? 'text-rose-300 font-semibold' : 'text-amber-300 font-semibold';
+          if (navigator.vibrate) navigator.vibrate(isError ? [25, 30, 25] : [18, 20, 30]);
+        }
+
+        // Trigger real Telegram WebApp SDK if embedded in Telegram
+        try {
+          const tgHaptic = window.Telegram?.WebApp?.HapticFeedback;
+          if (tgHaptic) {
+            if (type === 'selectionChanged') tgHaptic.selectionChanged();
+            if (type === 'impactOccurred') tgHaptic.impactOccurred(style || 'medium');
+            if (type === 'notificationOccurred') tgHaptic.notificationOccurred(style || 'success');
+          }
+        } catch (_) {}
+
+        pill.classList.remove('haptic-pop');
+        void pill.offsetWidth;
+        pill.classList.add('haptic-pop');
+
+        clearTimeout(hapticTimeout);
+        hapticTimeout = setTimeout(() => {
+          dot.className = 'w-2 h-2 rounded-full bg-slate-600';
+          label.className = 'text-slate-400 font-semibold';
+          label.textContent = 'IDLE';
+        }, 1200);
+      }
+
+      // Setup mute toggle button
+      const audioBtn = document.getElementById('audio-toggle');
+      const audioIcon = document.getElementById('audio-icon');
+      const audioText = document.getElementById('audio-text');
+
+      audioBtn.addEventListener('click', () => {
+        isMuted = !isMuted;
+        if (!isMuted) {
+          ensureAudio();
+          sfx.tick();
+          audioIcon.textContent = '🔊';
+          audioText.textContent = 'SFX ON';
+          audioBtn.classList.replace('text-slate-400', 'text-cyan-300');
+        } else {
+          audioIcon.textContent = '🔇';
+          audioText.textContent = 'MUTED';
+          audioBtn.classList.replace('text-cyan-300', 'text-slate-400');
+        }
+      });
+
+      return { sfx, triggerHaptic };
+    })();
+
+    /**
+     * =========================================================================
+     * 1. THE "SLOW SWEAT" PEEL (CORNER CURL)
+     * =========================================================================
+     */
+    (() => {
+      const container = document.getElementById('peel-card');
+      const back = document.getElementById('peel-back');
+      const flap = document.getElementById('peel-flap');
+
+      let isDragging = false;
+      let peelProgress = 0; // 0 to 1
+      let lastThreshold = 0;
+      let springAnimId = null;
+
+      function renderPeel(p) {
+        // Clamp between 0 and 0.85
+        const t = Math.max(0, Math.min(0.85, p));
+        // Diagonal cut distance from bottom-right corner (in percentage)
+        const cut = t * 95;
+        const x1 = 100 - cut;
+        const y2 = 100 - cut * 1.15;
+
+        if (t <= 0.005) {
+          back.style.clipPath = 'none';
+          flap.style.opacity = '0';
+          return;
+        }
+
+        // Clip away the bottom-right triangle of the card back to reveal the Ace of Diamonds underneath
+        back.style.clipPath = `polygon(0% 0%, 100% 0%, 100% ${Math.max(0, y2)}%, ${Math.max(0, x1)}% 100%, 0% 100%)`;
+
+        // Position and fold the curled corner flap along the fold crease
+        flap.style.opacity = Math.min(1, t * 4).toFixed(2);
+        flap.style.clipPath = `polygon(100% ${Math.max(0, y2)}%, ${Math.max(0, x1)}% 100%, 100% 100%)`;
+        const shiftX = -cut * 0.42;
+        const shiftY = -cut * 0.48;
+        flap.style.transform = `translate(${shiftX}%, ${shiftY}%) rotate(${t * 14}deg)`;
+      }
+
+      function updateFromPointer(clientX, clientY) {
+        const rect = container.getBoundingClientRect();
+        // Distance dragged inward from bottom-right corner
+        const dx = rect.right - clientX;
+        const dy = rect.bottom - clientY;
+        const rawDist = Math.max(0, (dx + dy) * 0.55);
+        const maxDist = rect.width * 0.95;
+        peelProgress = Math.max(0, Math.min(0.85, rawDist / maxDist));
+
+        renderPeel(peelProgress);
+
+        // Haptic & audio ticks at 30% and 60% sweat thresholds
+        const currentStep = peelProgress >= 0.6 ? 2 : peelProgress >= 0.3 ? 1 : 0;
+        if (currentStep !== lastThreshold) {
+          lastThreshold = currentStep;
+          SandboxFeedback.sfx.tick();
+          SandboxFeedback.triggerHaptic('selectionChanged');
+        }
+      }
+
+      function springSnapBack() {
+        cancelAnimationFrame(springAnimId);
+        let velocity = 0;
+        const stiffness = 0.22;
+        const damping = 0.72;
+
+        function step() {
+          const force = -peelProgress * stiffness;
+          velocity = (velocity + force) * damping;
+          peelProgress += velocity;
+
+          if (Math.abs(peelProgress) < 0.004 && Math.abs(velocity) < 0.004) {
+            peelProgress = 0;
+            lastThreshold = 0;
+            renderPeel(0);
+            return;
+          }
+          renderPeel(Math.max(0, peelProgress));
+          springAnimId = requestAnimationFrame(step);
+        }
+        springAnimId = requestAnimationFrame(step);
+      }
+
+      container.addEventListener('pointerdown', (e) => {
+        cancelAnimationFrame(springAnimId);
+        isDragging = true;
+        container.setPointerCapture(e.pointerId);
+        updateFromPointer(e.clientX, e.clientY);
+      });
+
+      container.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        updateFromPointer(e.clientX, e.clientY);
+      });
+
+      const endDrag = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        if (peelProgress > 0.15) {
+          SandboxFeedback.sfx.snap();
+          SandboxFeedback.triggerHaptic('impactOccurred', 'light');
+        }
+        springSnapBack();
+      };
+
+      container.addEventListener('pointerup', endDrag);
+      container.addEventListener('pointercancel', endDrag);
+    })();
+
+    /**
+     * =========================================================================
+     * 2. NEON EDGE CHARGE & FOIL SHIMMER
+     * =========================================================================
+     */
+    (() => {
+      const wrapper = document.getElementById('neon-wrapper');
+      const card = document.getElementById('neon-card');
+      const foil = document.getElementById('foil-layer');
+      const toggleBtn = document.getElementById('toggle-charge-btn');
+
+      let isCharged = true;
+
+      toggleBtn.addEventListener('click', () => {
+        isCharged = !isCharged;
+        card.classList.toggle('is-charged', isCharged);
+        toggleBtn.textContent = isCharged ? 'Pulse: ON' : 'Pulse: OFF';
+        SandboxFeedback.sfx.tick();
+        SandboxFeedback.triggerHaptic('selectionChanged');
+      });
+
+      function handleTilt(clientX, clientY) {
+        const rect = wrapper.getBoundingClientRect();
+        const x = (clientX - rect.left) / rect.width;  // 0 to 1
+        const y = (clientY - rect.top) / rect.height; // 0 to 1
+
+        const rotateY = (x - 0.5) * 26; // -13deg to +13deg
+        const rotateX = (0.5 - y) * 26; // -13deg to +13deg
+
+        card.style.transform = `rotateX(${rotateX.toFixed(1)}deg) rotateY(${rotateY.toFixed(1)}deg) scale(1.03)`;
+
+        // Shift diagonal specular foil sheen opposite to pointer
+        const foilX = (x - 0.5) * 70;
+        const foilY = (y - 0.5) * 70;
+        foil.style.transform = `translate(${foilX.toFixed(1)}%, ${foilY.toFixed(1)}%)`;
+        foil.style.opacity = '0.85';
+      }
+
+      function resetTilt() {
+        card.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1)';
+        foil.style.transform = 'translate(0%, 0%)';
+        foil.style.opacity = '0.35';
+      }
+
+      wrapper.addEventListener('pointermove', (e) => handleTilt(e.clientX, e.clientY));
+      wrapper.addEventListener('pointerleave', resetTilt);
+      wrapper.addEventListener('pointercancel', resetTilt);
+    })();
+
+    /**
+     * =========================================================================
+     * 3. TOSSED-INTO-THE-MUCK PHYSICS FLICK
+     * =========================================================================
+     */
+    (() => {
+      const card = document.getElementById('flick-card');
+      const muckZone = document.getElementById('muck-zone');
+      const muckCountEl = document.getElementById('muck-count');
+      const resetBtn = document.getElementById('reset-muck-btn');
+
+      let isDragging = false;
+      let isMucked = false;
+      let startX = 0, startY = 0;
+      let currentX = 0, currentY = 0;
+      let lastX = 0, lastY = 0, lastTime = 0;
+      let vx = 0, vy = 0;
+      let foldedCount = 0;
+
+      const ranks = [
+        { r: '7', s: '♣', color: 'text-slate-200' },
+        { r: '2', s: '♦', color: 'text-rose-400' },
+        { r: '9', s: '♠', color: 'text-slate-200' },
+        { r: '4', s: '♥', color: 'text-rose-400' },
+        { r: 'J', s: '♣', color: 'text-slate-200' }
+      ];
+
+      function respawnCard() {
+        isMucked = false;
+        currentX = 0;
+        currentY = 0;
+        vx = 0;
+        vy = 0;
+
+        const pick = ranks[foldedCount % ranks.length];
+        card.innerHTML = `
+          <div class="leading-none">
+            <div class="text-base font-extrabold ${pick.color}">${pick.r}</div>
+            <div class="text-sm ${pick.color}">${pick.s}</div>
+          </div>
+          <div class="self-center text-3xl ${pick.color} opacity-80">${pick.s}</div>
+          <div class="flex justify-between items-center">
+            <span class="text-[9px] font-mono-code text-rose-400">FLICK ↑</span>
+            <div class="leading-none rotate-180">
+              <div class="text-base font-extrabold ${pick.color}">${pick.r}</div>
+              <div class="text-sm ${pick.color}">${pick.s}</div>
+            </div>
+          </div>
+        `;
+
+        card.style.transition = 'none';
+        card.style.opacity = '0';
+        card.style.filter = 'none';
+        card.style.transform = 'translate(0px, 24px) scale(0.9)';
+
+        requestAnimationFrame(() => {
+          card.style.transition = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease';
+          card.style.opacity = '1';
+          card.style.transform = 'translate(0px, 0px) scale(1)';
+        });
+      }
+
+      resetBtn.addEventListener('click', () => {
+        SandboxFeedback.sfx.snap();
+        SandboxFeedback.triggerHaptic('selectionChanged');
+        respawnCard();
+      });
+
+      card.addEventListener('pointerdown', (e) => {
+        if (isMucked) return;
+        isDragging = true;
+        card.setPointerCapture(e.pointerId);
+        card.style.transition = 'none';
+        startX = e.clientX - currentX;
+        startY = e.clientY - currentY;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        lastTime = performance.now();
+        vx = 0;
+        vy = 0;
+      });
+
+      card.addEventListener('pointermove', (e) => {
+        if (!isDragging || isMucked) return;
+        const now = performance.now();
+        const dt = Math.max(8, now - lastTime);
+
+        vx = (e.clientX - lastX) / dt; // px per ms
+        vy = (e.clientY - lastY) / dt;
+
+        lastX = e.clientX;
+        lastY = e.clientY;
+        lastTime = now;
+
+        currentX = e.clientX - startX;
+        currentY = e.clientY - startY;
+
+        const tilt = currentX * 0.08;
+        card.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${tilt}deg)`;
+
+        if (currentY < -45) {
+          muckZone.classList.add('active-target');
+        } else {
+          muckZone.classList.remove('active-target');
+        }
+      });
+
+      const releaseFlick = () => {
+        if (!isDragging || isMucked) return;
+        isDragging = false;
+        muckZone.classList.remove('active-target');
+
+        // Check upward flick velocity or upward displacement threshold
+        if (vy < -0.45 || currentY < -65) {
+          isMucked = true;
+          foldedCount++;
+          muckCountEl.textContent = `${foldedCount} CARD${foldedCount === 1 ? '' : 'S'} FOLDED`;
+
+          // Launch along velocity vector toward center muck stack
+          const throwX = Math.max(-90, Math.min(90, currentX + vx * 160));
+          const throwY = -135;
+          const spin = (vx * 95) + (throwX * 0.35);
+
+          card.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.36s ease, filter 0.3s ease';
+          card.style.transform = `translate(${throwX}px, ${throwY}px) rotate(${spin}deg) scale(0.58)`;
+          card.style.filter = 'blur(1.5px)';
+          card.style.opacity = '0';
+
+          SandboxFeedback.sfx.swoosh();
+          SandboxFeedback.triggerHaptic('impactOccurred', 'medium');
+
+          // Auto-deal a fresh card after 650ms so user can keep testing effortlessly
+          setTimeout(() => {
+            if (isMucked) respawnCard();
+          }, 680);
+        } else {
+          // Spring back to hand position
+          currentX = 0;
+          currentY = 0;
+          card.style.transition = 'transform 0.32s cubic-bezier(0.22, 1, 0.36, 1)';
+          card.style.transform = 'translate(0px, 0px) rotate(0deg)';
+        }
+      };
+
+      card.addEventListener('pointerup', releaseFlick);
+      card.addEventListener('pointercancel', releaseFlick);
+    })();
+
+    /**
+     * =========================================================================
+     * 4. SNAP-DEAL STAGGER WITH MICRO-OVERSHOOT
+     * =========================================================================
+     */
+    (() => {
+      const board = document.getElementById('deal-board');
+      const slots = Array.from(board.querySelectorAll('.deal-slot'));
+      const dealBtn = document.getElementById('deal-hand-btn');
+
+      const hands = [
+        [
+          { r: 'A', s: '♠', c: 'text-cyan-300' },
+          { r: 'K', s: '♠', c: 'text-cyan-300' },
+          { r: 'Q', s: '♠', c: 'text-cyan-300' },
+          { r: 'J', s: '♠', c: 'text-cyan-300' },
+          { r: '10', s: '♠', c: 'text-cyan-300' }
+        ],
+        [
+          { r: '9', s: '♥', c: 'text-rose-400' },
+          { r: '9', s: '♦', c: 'text-rose-400' },
+          { r: '9', s: '♣', c: 'text-slate-200' },
+          { r: 'A', s: '♥', c: 'text-rose-400' },
+          { r: 'A', s: '♣', c: 'text-slate-200' }
+        ],
+        [
+          { r: '8', s: '♦', c: 'text-rose-400' },
+          { r: '7', s: '♦', c: 'text-rose-400' },
+          { r: '6', s: '♦', c: 'text-rose-400' },
+          { r: '5', s: '♦', c: 'text-rose-400' },
+          { r: '4', s: '♦', c: 'text-rose-400' }
+        ]
+      ];
+      let handIndex = 0;
+
+      function dealHand() {
+        const currentHand = hands[handIndex % hands.length];
+        handIndex++;
+
+        slots.forEach((slot, i) => {
+          slot.innerHTML = '';
+          const data = currentHand[i];
+          const card = document.createElement('div');
+          card.className = 'dealt-card';
+          card.innerHTML = `
+            <div class="leading-none">
+              <div class="text-xs sm:text-sm font-extrabold ${data.c}">${data.r}</div>
+              <div class="text-xs ${data.c}">${data.s}</div>
+            </div>
+            <div class="self-center text-xl sm:text-2xl ${data.c}">${data.s}</div>
+            <div class="leading-none rotate-180">
+              <div class="text-xs sm:text-sm font-extrabold ${data.c}">${data.r}</div>
+              <div class="text-xs ${data.c}">${data.s}</div>
+            </div>
+          `;
+          slot.appendChild(card);
+
+          // Staggered 70ms cadence with off-screen shoe pitch & 4px micro-overshoot
+          const delay = i * 70;
+          const startX = -180 - (i * 45);
+          const startY = -110;
+          const rot = (i % 2 === 0 ? -3 : 3);
+
+          setTimeout(() => {
+            SandboxFeedback.sfx.snap();
+            SandboxFeedback.triggerHaptic('impactOccurred', 'light');
+
+            card.animate([
+              {
+                opacity: 0,
+                transform: `translate(${startX}px, ${startY}px) rotate(${rot * 3}deg) scale(0.85)`
+              },
+              {
+                opacity: 1,
+                transform: `translate(4px, 2px) rotate(${rot}deg) scale(1.02)`,
+                offset: 0.78
+              },
+              {
+                opacity: 1,
+                transform: `translate(0px, 0px) rotate(${rot * 0.35}deg) scale(1)`
+              }
+            ], {
+              duration: 310,
+              easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+              fill: 'forwards'
+            });
+          }, delay);
+        });
+      }
+
+      dealBtn.addEventListener('click', dealHand);
+      // Initial deal on load
+      setTimeout(dealHand, 250);
+    })();
+
+    /**
+     * =========================================================================
+     * 5. THE "BAD BEAT" TILT & FRACTURE SHAKE
+     * =========================================================================
+     */
+    (() => {
+      const card = document.getElementById('bad-beat-card');
+      const btn = document.getElementById('bad-beat-btn');
+      const tag = document.getElementById('bad-beat-tag');
+      let resetTimer = null;
+
+      function triggerBadBeat() {
+        clearTimeout(resetTimer);
+        card.classList.remove('bad-beat-active');
+        void card.offsetWidth; // Force reflow to restart animation
+
+        card.classList.add('bad-beat-active');
+        tag.textContent = 'RIVERED 0.2%';
+        SandboxFeedback.sfx.badBeat();
+        SandboxFeedback.triggerHaptic('notificationOccurred', 'error');
+
+        resetTimer = setTimeout(() => {
+          card.classList.remove('bad-beat-active');
+          tag.textContent = '99.8% FAV';
+        }, 1800);
+      }
+
+      btn.addEventListener('click', triggerBadBeat);
+      card.addEventListener('click', triggerBadBeat);
+    })();
+
+    /**
+     * =========================================================================
+     * 6. MAGNETIC FAN & PARALLAX LIFT
+     * =========================================================================
+     */
+    (() => {
+      const stage = document.getElementById('fan-stage');
+      const readout = document.getElementById('fan-readout');
+
+      const fanData = [
+        { r: '10', s: '♥', c: 'text-rose-400' },
+        { r: 'J', s: '♥', c: 'text-rose-400' },
+        { r: 'Q', s: '♥', c: 'text-rose-400' },
+        { r: 'K', s: '♥', c: 'text-rose-400' },
+        { r: 'A', s: '♥', c: 'text-rose-400' }
+      ];
+
+      const cards = fanData.map((d, idx) => {
+        const el = document.createElement('div');
+        el.className = 'fan-card';
+        el.innerHTML = `
+          <div class="leading-none">
+            <div class="text-sm font-extrabold ${d.c}">${d.r}</div>
+            <div class="text-xs ${d.c}">${d.s}</div>
+          </div>
+          <div class="self-center text-2xl ${d.c}">${d.s}</div>
+          <div class="leading-none rotate-180">
+            <div class="text-sm font-extrabold ${d.c}">${d.r}</div>
+            <div class="text-xs ${d.c}">${d.s}</div>
+          </div>
+        `;
+        stage.appendChild(el);
+        return el;
+      });
+
+      let activeIndex = -1;
+
+      function layoutFan(focusIdx) {
+        const total = cards.length;
+        const mid = (total - 1) / 2;
+
+        cards.forEach((card, i) => {
+          const offset = i - mid; // -2, -1, 0, 1, 2
+          let x = offset * 34;
+          let y = Math.abs(offset) * 5;
+          let rot = offset * 7.5;
+          let scale = 1;
+          let z = i + 1;
+
+          if (focusIdx !== -1) {
+            if (i === focusIdx) {
+              // Elevate active card, level rotation to 0deg
+              y = -18;
+              rot = 0;
+              scale = 1.06;
+              z = 20;
+              card.classList.add('is-focused');
+            } else {
+              // Gently push neighboring cards outward (±12px)
+              const dir = i < focusIdx ? -1 : 1;
+              const dist = Math.abs(i - focusIdx);
+              x += dir * (dist === 1 ? 14 : 8);
+              card.classList.remove('is-focused');
+            }
+          } else {
+            card.classList.remove('is-focused');
+          }
+
+          card.style.zIndex = z;
+          card.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg) scale(${scale})`;
+        });
+      }
+
+      function scrubFromPointer(clientX) {
+        const rect = stage.getBoundingClientRect();
+        // Map horizontal pointer across central 260px fan span
+        const fanWidth = Math.min(rect.width - 24, 260);
+        const startX = rect.left + (rect.width - fanWidth) / 2;
+        const norm = Math.max(0, Math.min(0.999, (clientX - startX) / fanWidth));
+        const idx = Math.floor(norm * cards.length);
+
+        if (idx !== activeIndex) {
+          activeIndex = idx;
+          layoutFan(activeIndex);
+          readout.textContent = `${fanData[idx].r}${fanData[idx].s} SELECTED`;
+          SandboxFeedback.sfx.tick();
+          SandboxFeedback.triggerHaptic('selectionChanged');
+        }
+      }
+
+      stage.addEventListener('pointermove', (e) => scrubFromPointer(e.clientX));
+      stage.addEventListener('pointerdown', (e) => {
+        stage.setPointerCapture(e.pointerId);
+        scrubFromPointer(e.clientX);
+      });
+
+      const resetFan = () => {
+        activeIndex = -1;
+        layoutFan(-1);
+        readout.textContent = 'SCRUB HAND';
+      };
+
+      stage.addEventListener('pointerleave', resetFan);
+      stage.addEventListener('pointerup', resetFan);
+      stage.addEventListener('pointercancel', resetFan);
+
+      // Initial resting fan layout
+      layoutFan(-1);
+    })();
+
+    /**
+     * =========================================================================
+     * 7. CHIP-STACK & WINNER'S CROWN LOCK-IN
+     * =========================================================================
+     */
+    (() => {
+      const card = document.getElementById('winner-card');
+      const burst = document.getElementById('gold-burst');
+      const stamp = document.getElementById('winner-stamp');
+      const btn = document.getElementById('lock-winner-btn');
+
+      let isLocked = false;
+
+      function toggleWinnerLock() {
+        isLocked = !isLocked;
+
+        if (isLocked) {
+          card.classList.add('is-locked');
+          btn.textContent = 'Reset Crown';
+
+          // Restart radial flash & heavy stamp slam
+          burst.classList.remove('animate-burst');
+          stamp.classList.remove('slam-in');
+          void burst.offsetWidth;
+          burst.classList.add('animate-burst');
+          stamp.classList.add('slam-in');
+
+          SandboxFeedback.sfx.winnerSlam();
+          SandboxFeedback.triggerHaptic('notificationOccurred', 'success');
+        } else {
+          card.classList.remove('is-locked');
+          burst.classList.remove('animate-burst');
+          stamp.classList.remove('slam-in');
+          btn.textContent = 'Lock Winner';
+          SandboxFeedback.sfx.tick();
+          SandboxFeedback.triggerHaptic('selectionChanged');
+        }
+      }
+
+      btn.addEventListener('click', toggleWinnerLock);
+      card.addEventListener('click', toggleWinnerLock);
+    })();
+  </script>
+</body>
+</html>

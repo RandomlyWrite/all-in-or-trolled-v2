@@ -1,0 +1,20 @@
+{
+  "name": "all-in-or-trolled",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Degen Vegas | 30,000 chips | 500 ante | provable deck shuffle | play-chip poker",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "verify": "node scripts/verify-proof.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
+  },
+  "engines": { "node": ">=20" }
+}
